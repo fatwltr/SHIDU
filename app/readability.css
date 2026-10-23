@@ -1,0 +1,96 @@
+/* A modest, consistent type scale for every reading theme. */
+.app-shell{font-size:14px;line-height:1.65}
+[data-theme] .app-shell .article-title{font-size:21px;line-height:1.65}
+.app-shell .article-summary{font-size:14px;line-height:1.9}
+.app-shell .article-meta,.app-shell .article-bottom{font-size:12px}
+.app-shell .article-meta .category{font-size:11px}
+.app-shell .article-bottom .read-link{font-size:12px}
+.app-shell .article-row{padding-top:26px;padding-bottom:26px}
+.app-shell .unread-dot{top:15px}
+.app-shell .reader-body>p{font-size:16px;line-height:2.05}
+.app-shell .reader-body h1{font-size:30px;line-height:1.65}
+.app-shell .reader-body .article-meta{font-size:13px;flex-wrap:wrap}
+.app-shell .original-note>span{font-size:12px}
+.app-shell .main-nav>button,.app-shell .feed-nav>button{font-size:14px}
+.app-shell .feed-icon{font-size:12px}
+.app-shell .feed-icon.big{font-size:18px}
+.app-shell .feed-nav small,.app-shell .main-nav>button>span{font-size:12px}
+.app-shell .workspace-label,.app-shell .section-label{font-size:12px}
+.app-shell .workspace-label>span{font-size:11px}
+.app-shell .sidebar-empty{font-size:12px;line-height:1.9}
+.app-shell .daily-card strong,.app-shell .daily-card p{font-size:12px}
+.app-shell .daily-line{font-size:11px}
+.app-shell .user-line{font-size:12px}
+.app-shell .user-line small{font-size:11px}
+.app-shell .add-main,.app-shell .primary,.app-shell .secondary,.app-shell .text-button{font-size:13px}
+.app-shell .breadcrumb,.app-shell .topbar-right{font-size:12px}
+.app-shell .theme-trigger{font-size:12px}
+.app-shell .heading-row p{font-size:14px;line-height:1.8}
+.app-shell .eyebrow{font-size:10px}
+.app-shell .update-strip strong{font-size:13px}
+.app-shell .update-strip small{font-size:12px;line-height:1.7}
+.app-shell .last-update{font-size:11px}
+.app-shell .tabs>button,.app-shell .mark-all{font-size:13px}
+.app-shell .tabs>button>span{font-size:11px}
+.app-shell .search{max-width:190px}
+.app-shell .search input{font-size:13px;width:120px}
+.app-shell .reading-tools select{font-size:12px;max-width:95px}
+.app-shell .empty-state p{font-size:14px;line-height:1.95}
+.app-shell .empty-state .primary{font-size:13px;min-height:42px}
+.app-shell .empty-overline,.app-shell .empty-discover{font-size:12px}
+.app-shell .starter-sources>span,.app-shell .starter-sources>button{font-size:12px}
+.app-shell footer{font-size:11px;line-height:1.8}
+.app-shell .list-heading h2{font-size:16px}
+.app-shell .list-heading>span,.app-shell .list-heading h2 span{font-size:12px}
+.app-shell .discovery-card h3,.app-shell .manage-info strong{font-size:15px}
+.app-shell .discovery-card p,.app-shell .discovery-note p,.app-shell .manage-info small{font-size:12px;line-height:1.85}
+.app-shell .discovery-note strong{font-size:13px}
+.app-shell .discovery-card .secondary,.app-shell .discovery-note .text-button{font-size:12px}
+.app-shell .category,.app-shell .manage-time{font-size:11px}
+.app-shell .manage-info .error-color{font-size:12px}
+.app-shell .simple-empty,.app-shell .error-banner,.app-shell .toast{font-size:13px;line-height:1.8}
+.app-shell .modal form>label,.app-shell .hub-settings label{font-size:13px}
+.app-shell .modal>p,.app-shell .modal input,.app-shell .modal select{font-size:14px;line-height:1.7}
+.app-shell .modal input::placeholder{font-size:13px}
+.app-shell .input-hint,.app-shell .modal-tip,.app-shell .form-error,.app-shell .hub-help{font-size:12px;line-height:1.8}
+.app-shell .subscription-types button,.app-shell .primary.full{font-size:13px}
+.app-shell .hub-save-row small,.app-shell .hub-preview code,.app-shell .hub-preview strong,.app-shell .hub-preview span{font-size:12px}
+.app-shell .hub-save-row .secondary{font-size:12px}
+.theme-backdrop .theme-panel-heading p{font-size:13px}
+.theme-backdrop .theme-option-label>span{font-size:14px}
+.theme-backdrop .theme-option-label small{font-size:10px}
+.theme-backdrop .theme-option>p,.theme-backdrop .theme-system small,.theme-backdrop .theme-saved{font-size:12px;line-height:1.8}
+.theme-backdrop .theme-system>span{font-size:13px}
+.theme-backdrop .theme-eyebrow{font-size:10px}
+.app-shell .sidebar{overflow-y:auto}
+@media(max-height:760px) and (min-width:641px){
+ .app-shell .brand{margin-bottom:22px}
+ .app-shell .main-nav{margin-top:19px;margin-bottom:18px}
+ .app-shell .daily-line{display:none}
+ .app-shell .sidebar-bottom{margin-top:15px}
+}
+@media(max-width:1150px){.app-shell .search input{width:95px}.app-shell .reading-tools{gap:10px}.app-shell .update-strip{flex-wrap:wrap}}
+@media(max-width:640px){
+ [data-theme] .app-shell .article-title{font-size:19px;line-height:1.7}
+ .app-shell .article-summary{font-size:14px;line-height:1.9}
+ .app-shell .article-meta,.app-shell .article-bottom{font-size:12px}
+ .app-shell .article-row{padding-top:22px;padding-bottom:22px}
+ .app-shell .reader-body>p{font-size:16px;line-height:2}
+ .app-shell .reader-body h1{font-size:26px}
+ .app-shell .heading-row p{font-size:13px}
+ .app-shell .update-strip strong{font-size:13px}
+ .app-shell .update-strip small{font-size:11px}
+ .app-shell .breadcrumb,.app-shell .topbar-right{font-size:11px}
+ .app-shell .search input{font-size:14px;width:115px}
+ .app-shell .reading-tools select,.app-shell .mark-all{font-size:12px}
+ .app-shell .tabs{gap:18px}
+ .app-shell .empty-state p{font-size:14px}
+ .app-shell .starter-sources{gap:8px}
+ .app-shell .starter-sources>button{font-size:11px;padding:8px}
+ .app-shell footer{font-size:11px}
+ .app-shell .modal input,.app-shell .modal select{font-size:16px}
+ .theme-backdrop .theme-option-label small{display:none}
+ .theme-backdrop .theme-option-label>span{font-size:13px}
+ .theme-backdrop .theme-option>p{font-size:11px}
+ .theme-backdrop .theme-panel-heading p{font-size:12px}
+}

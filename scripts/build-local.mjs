@@ -1,0 +1,13 @@
+import {build as viteBuild} from 'vite';
+import {build as bundle} from 'esbuild';
+import react from '@vitejs/plugin-react';
+import {resolve} from 'node:path';
+import {mkdirSync,copyFileSync} from 'node:fs';
+const root=resolve(import.meta.dirname,'..');
+await viteBuild({configFile:false,root:resolve(root,'local'),base:'/',plugins:[react()],build:{outDir:resolve(root,'.local/public'),emptyOutDir:true}});
+copyFileSync(resolve(root,'public/favicon.svg'),resolve(root,'.local/public/favicon.svg'));
+copyFileSync(resolve(root,'public/theme-init.js'),resolve(root,'.local/public/theme-init.js'));
+await bundle({entryPoints:[resolve(root,'local/server.ts')],outfile:resolve(root,'.local/server.mjs'),platform:'node',format:'esm',bundle:true,target:'node24',external:['node:*']});
+mkdirSync(resolve(root,'.local/migrations'),{recursive:true});
+copyFileSync(resolve(root,'drizzle/0000_worried_baron_zemo.sql'),resolve(root,'.local/migrations/0000.sql'));
+console.log('Local deployment built. Start with: node .local/server.mjs');

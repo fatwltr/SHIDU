@@ -1,0 +1,27 @@
+
+# Dependencies and generated builds
+node_modules/
+.local/
+dist/
+coverage/
+*.tsbuildinfo
+
+# Runtime data and credentials
+local-data/
+*.sqlite*
+*.db*
+.env
+.env.*
+!.env.example
+*.key
+*.pem
+*.pfx
+*.p12
+*.log
+*.pid
+
+# Machine-local configuration
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
