@@ -1,5 +1,5 @@
 'use client';
-import {useEffect,useState} from 'react';
+import {useEffect,useRef,useState} from 'react';
 import {DEFAULT_RSSHUB,resolveRoute} from '../lib/rsshub.mjs';
 import ThemePicker from './theme-picker';
 import ReaderLayout from './reader-layout';
@@ -19,6 +19,8 @@ export default function Reader(){
  const [kind,setKind]=useState('rss'),[hubSupported,setHubSupported]=useState(false),[hubInstance,setHubInstance]=useState(DEFAULT_RSSHUB),[instanceDraft,setInstanceDraft]=useState<string|null>(null),[savingInstance,setSavingInstance]=useState(false);
  const [tagFilter,setTagFilter]=useState<string|null>(null);
  const [lastRun,setLastRun]=useState<string|null>(null);
+ const [readingIds,setReadingIds]=useState<string[]>([]);
+ const readerPanel=useRef<HTMLElement>(null);
  async function load(){setLoadError('');try{const r=await fetch('/api/reader');const d=await r.json() as Payload;if(!r.ok)throw Error(d.error);setFeeds(d.feeds);setArticles(d.articles);setLastRun(d.lastRun?.at||null);setHubSupported(!!d.rsshubSupported);if(d.rsshubInstance)setHubInstance(d.rsshubInstance);}catch(e){setLoadError(e instanceof Error?e.message:'连接失败');}finally{setLoading(false);}}
  useEffect(()=>{load();const timer=setInterval(load,60000);return()=>clearInterval(timer);},[]);
  useEffect(()=>{if(!loading&&tagFilter!==null&&!feeds.some(f=>tagName(f.category)===tagFilter))setTagFilter(null);},[feeds,loading,tagFilter]);
@@ -27,8 +29,10 @@ export default function Reader(){
  async function action(b:object){const r=await fetch('/api/reader',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(b)});const d=await r.json() as {error?:string};if(!r.ok)throw Error(d.error||'操作失败');}
  function navigate(v:string){if(v==='discover')setTagFilter(null);setView(v);setSearch('');setSidebar(false);setFilter('all');}
  async function add(e:React.FormEvent){e.preventDefault();setBusy(true);setFormError('');try{await action({action:'add',url,category,kind});await load();setModal(false);setUrl('');setToast('订阅成功，首批文章已到达');setTagFilter(null);setView('all');}catch(e){setFormError(e instanceof Error?e.message:'添加失败');}finally{setBusy(false);}}
- async function toggle(a:Article,field:'read'|'saved'){const value=!a[field];try{await action({action:'article',id:a.id,field,value});setArticles(prev=>prev.map(x=>x.id===a.id?{...x,[field]:value?1:0}:x));if(selected?.id===a.id)setSelected({...selected,[field]:value?1:0});}catch(e){setToast(e instanceof Error?e.message:'操作失败');}}
- function open(a:Article){setSelected({...a,read:1});if(!a.read)toggle(a,'read');}
+ async function toggle(a:Article,field:'read'|'saved'){const value=!a[field];try{await action({action:'article',id:a.id,field,value});setArticles(prev=>prev.map(x=>x.id===a.id?{...x,[field]:value?1:0}:x));setSelected(current=>current?.id===a.id?{...current,[field]:value?1:0}:current);}catch(e){setToast(e instanceof Error?e.message:'操作失败');}}
+ function showArticle(a:Article){setSelected({...a,read:1});if(!a.read)void toggle(a,'read');}
+ // Freeze the visible order before marking an item read removes it from unread views.
+ function open(a:Article){setReadingIds(shown.map(item=>item.id));showArticle(a);}
  async function readAll(){try{const ids=readScope(feeds,view,tagFilter);if(ids===null)await action({action:'readAll'});else await Promise.all(ids.map(feedId=>action({action:'readAll',feedId})));await load();setToast('当前范围已标记为已读');}catch(e){setToast(e instanceof Error?e.message:'操作失败');}}
  async function remove(){setBusy(true);try{await action({action:'delete',id:deleteId});await load();setDeleteId('');setToast('已取消订阅');if(view===deleteId)setView('all');}catch(e){setToast(e instanceof Error?e.message:'操作失败');}finally{setBusy(false);}}
  const unread=articles.filter(a=>!a.read).length,saved=articles.filter(a=>a.saved).length,activeFeed=feeds.find(f=>f.id===view);
@@ -37,6 +41,29 @@ export default function Reader(){
  const unreadByFeed=articles.reduce<Record<string,number>>((counts,a)=>{if(!a.read)counts[a.feed_id]=(counts[a.feed_id]||0)+1;return counts;},{});
  function selectTag(tag:string|null){setTagFilter(tag);if(!['all','unread','saved','manage'].includes(view))setView('all');setSearch('');setFilter('all');setSidebar(false);}
  const shown=articles.filter(a=>(tagFilter===null||tagName(a.category)===tagFilter)&&(view==='all'||view==='unread'&&!a.read||view==='saved'&&a.saved||a.feed_id===view)&&(filter!=='unread'||!a.read)&&(!search||`${a.title} ${a.summary} ${a.feed_title}`.toLowerCase().includes(search.toLowerCase()))).sort((a,b)=>sort==='new'?b.published.localeCompare(a.published):a.published.localeCompare(b.published));
+ const articlesById=new Map(articles.map(a=>[a.id,a]));
+ const readingArticles=readingIds.map(id=>articlesById.get(id)).filter((a):a is Article=>!!a);
+ const readingIndex=readingArticles.findIndex(a=>a.id===selected?.id);
+ const previousArticle=readingIndex>0?readingArticles[readingIndex-1]:null;
+ const nextArticle=readingIndex>=0?readingArticles[readingIndex+1]??null:null;
+ const isReading=selected!==null;
+ useEffect(()=>{if(isReading)readerPanel.current?.focus();},[isReading]);
+ useEffect(()=>{if(readerPanel.current)readerPanel.current.scrollTop=0;},[selected?.id]);
+ useEffect(()=>{
+  if(!selected)return;
+  function key(e:KeyboardEvent){
+   if(e.defaultPrevented||e.altKey||e.ctrlKey||e.metaKey||e.shiftKey||e.isComposing)return;
+   const target=e.target instanceof Element?e.target:null;
+   if(target&&!readerPanel.current?.contains(target))return;
+   if(target?.closest('input,textarea,select,[contenteditable]:not([contenteditable="false"]),[role="textbox"],[role="slider"],[role="separator"]'))return;
+   if(e.key!=='ArrowLeft'&&e.key!=='ArrowRight')return;
+   e.preventDefault();
+   const article=e.key==='ArrowLeft'?previousArticle:nextArticle;
+   if(article)showArticle(article);
+  }
+  window.addEventListener('keydown',key);
+  return()=>window.removeEventListener('keydown',key);
+ },[selected,previousArticle,nextArticle]);
  const title=view==='all'?(tagFilter?tagFilter+' · 订阅':'今日拾读'):view==='unread'?'未读文章':view==='saved'?'我的收藏':view==='discover'?'发现好内容':view==='manage'?'订阅管理':activeFeed?.title||'今日拾读';
  const latest=feeds.map(f=>f.checked).filter(Boolean).sort().pop()||lastRun;
  function recommend(s:typeof suggestions[0]){setUrl(s.url);setCategory(s.category);setFormError('');setKind('rss');setModal(true);}
@@ -80,7 +107,17 @@ export default function Reader(){
   </div>
   {toast&&<div className="toast" role="status"><Check size={17}/>{toast}</div>}
   {modal&&<div className="modal-backdrop" onClick={()=>!busy&&setModal(false)}><section className="modal" role="dialog" aria-modal="true" aria-labelledby="add-title" onClick={e=>e.stopPropagation()}><button className="close-button" aria-label="关闭" disabled={busy} onClick={()=>setModal(false)}><X size={20}/></button><span className="modal-icon"><Rss size={23}/></span><h2 id="add-title">让好内容，自己来。</h2><p>添加一个订阅源，开启你的每日阅读。</p><form onSubmit={add}>{hubSupported&&<div className="subscription-types"><button type="button" className={kind==='rss'?'selected':''} onClick={()=>{setKind('rss');setUrl('');setFormError('');}}>RSS 链接</button><button type="button" className={kind==='rsshub'?'selected':''} onClick={()=>{setKind('rsshub');setUrl('');setFormError('');}}>RSSHub 路由</button></div>}{kind==='rsshub'&&<div className="hub-settings"><label>RSSHub 实例<input type="url" placeholder="http://localhost:1200" value={instanceDraft??hubInstance} onChange={e=>setInstanceDraft(e.target.value)} disabled={busy||savingInstance}/></label><div className="hub-save-row"><small>支持公共、自建和本机实例。修改仅用于新路由。</small><button type="button" className="secondary" disabled={busy||savingInstance||instanceDraft===null} onClick={saveInstance}>{savingInstance?'保存中…':'保存实例'}</button></div></div>}<label>{kind==='rsshub'?'RSSHub 路由 / 完整链接':'订阅源地址'}<input autoFocus type={kind==='rsshub'?'text':'url'} required placeholder={kind==='rsshub'?'/github/issue/DIYgod/RSSHub/open':'https://example.com/feed.xml'} value={url} onChange={e=>setUrl(e.target.value)} disabled={busy||savingInstance}/></label><small className="input-hint">{kind==='rsshub'?'可填写 /路由、rsshub://路由或完整 HTTP 链接':'支持 RSS、Atom 和 JSON Feed · 请填写订阅链接'}</small>{kind==='rsshub'&&<><div className="hub-preview"><strong>实际订阅地址</strong><code>{preview||'填写路由后将显示完整地址'}</code>{instanceDraft!==null&&<span>实例地址有未保存的修改，请先保存。</span>}</div><p className="hub-help">本功能连接 RSSHub 实例，不会自动安装 RSSHub。公共实例和部分路由可能受限；需要登录的路由请在自建实例配置。<a href="https://docs.rsshub.app/" target="_blank" rel="noopener noreferrer">查看路由文档 ↗</a></p></>}<label>标签<select value={category} onChange={e=>setCategory(e.target.value)} disabled={busy}>{Array.from(new Set(['未分类','科技','设计','生活','新闻','文化','其他',...tagGroups.map(g=>g.tag)])).map(c=><option key={c}>{c}</option>)}</select></label>{formError&&<div className="form-error" role="alert">{formError}</div>}<div className="modal-tip"><Clock size={15}/><span>添加后立即拉取，此后每天 08:00 更新一次。</span></div><button className="primary full" disabled={busy||savingInstance||(kind==='rsshub'&&instanceDraft!==null)} type="submit">{busy?<LoaderCircle size={17} className="spin"/>:<Plus size={17}/>} {busy?'正在连接订阅源…':'添加订阅'}</button></form></section></div>}
-  {selected&&<div className="modal-backdrop article-backdrop" onClick={()=>setSelected(null)}><section className="reader-panel" role="dialog" aria-modal="true" aria-labelledby="article-title" onClick={e=>e.stopPropagation()}><div className="reader-actions"><button className="text-button" onClick={()=>setSelected(null)}><ArrowLeft size={17}/>返回阅读</button><button className="secondary" onClick={()=>toggle(selected,'saved')}><Bookmark size={16} fill={selected.saved?'currentColor':'none'}/>{selected.saved?'已收藏':'收藏'}</button><button className="icon-button" aria-label="关闭文章" onClick={()=>setSelected(null)}><X size={20}/></button></div><div className="reader-body"><div className="article-meta">{selected.feed_title}<span>·</span>{time(selected.published)}</div><h1 id="article-title">{selected.title}</h1><div className="reader-divider"/><p>{selected.summary||'此订阅源未提供摘要，请前往原网站阅读全文。'}</p><div className="original-note"><span>以上为订阅源提供的摘要</span><a className="primary" href={selected.url} target="_blank" rel="noopener noreferrer">阅读完整原文<ArrowUpRight size={17}/></a></div></div></section></div>}
+  {selected&&<div className="modal-backdrop article-backdrop" onClick={()=>setSelected(null)}>
+   <section ref={readerPanel} className="reader-panel" role="dialog" aria-modal="true" aria-labelledby="article-title" aria-describedby="reader-navigation-hint" tabIndex={-1} onClick={e=>e.stopPropagation()}>
+    <div className="reader-actions"><button className="text-button" onClick={()=>setSelected(null)}><ArrowLeft size={17}/>返回阅读</button><button className="secondary" onClick={()=>toggle(selected,'saved')}><Bookmark size={16} fill={selected.saved?'currentColor':'none'}/>{selected.saved?'已收藏':'收藏'}</button><button className="icon-button" aria-label="关闭文章" onClick={()=>setSelected(null)}><X size={20}/></button></div>
+    <nav className="reader-navigation" aria-label="文章切换">
+     <button className="secondary" aria-label="上一篇文章" aria-keyshortcuts="ArrowLeft" disabled={!previousArticle} onClick={()=>previousArticle&&showArticle(previousArticle)}><ArrowLeft size={16}/>上一篇</button>
+     <span className="reader-position"><span role="status" aria-live="polite" aria-atomic="true">{readingIndex>=0?`${readingIndex+1} / ${readingArticles.length}`:'当前文章'}</span><small id="reader-navigation-hint">← / → 切换文章</small></span>
+     <button className="secondary" aria-label="下一篇文章" aria-keyshortcuts="ArrowRight" disabled={!nextArticle} onClick={()=>nextArticle&&showArticle(nextArticle)}>下一篇<ChevronRight size={16}/></button>
+    </nav>
+    <div className="reader-body"><div className="article-meta">{selected.feed_title}<span>·</span>{time(selected.published)}</div><h1 id="article-title">{selected.title}</h1><div className="reader-divider"/><p>{selected.summary||'此订阅源未提供摘要，请前往原网站阅读全文。'}</p><div className="original-note"><span>以上为订阅源提供的摘要</span><a className="primary" href={selected.url} target="_blank" rel="noopener noreferrer">阅读完整原文<ArrowUpRight size={17}/></a></div></div>
+   </section>
+  </div>}
   {deleteId&&<div className="modal-backdrop"><section className="modal delete-modal" role="alertdialog" aria-modal="true" aria-labelledby="delete-title"><h2 id="delete-title">取消这份订阅？</h2><p>「{feeds.find(f=>f.id===deleteId)?.title}」及其文章、收藏将被移除。</p><div className="delete-actions"><button className="secondary" disabled={busy} onClick={()=>setDeleteId('')}>保留订阅</button><button className="primary destructive" disabled={busy} onClick={remove}>{busy?'正在移除…':'取消订阅'}</button></div></section></div>}
  </ReaderLayout>;
 }

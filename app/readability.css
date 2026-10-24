@@ -10,6 +10,9 @@
 .app-shell .reader-body>p{font-size:16px;line-height:2.05}
 .app-shell .reader-body h1{font-size:30px;line-height:1.65}
 .app-shell .reader-body .article-meta{font-size:13px;flex-wrap:wrap}
+.reader-navigation{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:14px 25px;border-bottom:1px solid var(--line)}
+.reader-position{display:flex;flex-direction:column;align-items:center;gap:3px;color:var(--muted);font-size:13px;font-variant-numeric:tabular-nums}
+.reader-position small{font-size:11px;white-space:nowrap}
 .app-shell .original-note>span{font-size:12px}
 .app-shell .main-nav>button,.app-shell .feed-nav>button{font-size:14px}
 .app-shell .feed-icon{font-size:12px}
@@ -77,6 +80,8 @@
  .app-shell .article-row{padding-top:22px;padding-bottom:22px}
  .app-shell .reader-body>p{font-size:16px;line-height:2}
  .app-shell .reader-body h1{font-size:26px}
+ .reader-navigation{padding:12px 18px;gap:8px}
+ .app-shell .reader-navigation .secondary{padding:8px;font-size:12px}
  .app-shell .heading-row p{font-size:13px}
  .app-shell .update-strip strong{font-size:13px}
  .app-shell .update-strip small{font-size:11px}

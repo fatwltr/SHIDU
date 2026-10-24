@@ -4,17 +4,23 @@
   "private": true,
   "type": "module",
   "description": "拾读：支持 RSSHub、标签筛选和多主题的每日 RSS 阅读器",
-  "engines": {"node": ">=24"},
+  "engines": {
+    "node": ">=24"
+  },
   "scripts": {
     "build": "node scripts/build-local.mjs",
     "start": "node .local/server.mjs",
     "local:build": "node scripts/build-local.mjs",
     "local:start": "node .local/server.mjs",
     "typecheck": "tsc --noEmit",
-    "test": "node --test --test-isolation=none tests/rss.test.mjs tests/rsshub.test.mjs",
+    "test": "node --test --test-isolation=none tests/rss.test.mjs tests/rsshub.test.mjs tests/reader-navigation.test.mjs",
     "test:auth": "node tests/remote-auth.mjs"
   },
-  "dependencies": {"react": "19.2.6", "react-dom": "19.2.6", "lucide-react": "1.31.0"},
+  "dependencies": {
+    "lucide-react": "1.31.0",
+    "react": "19.2.6",
+    "react-dom": "19.2.6"
+  },
   "devDependencies": {
     "@cloudflare/workers-types": "4.20260515.1",
     "@tailwindcss/postcss": "4.2.1",
@@ -23,6 +29,7 @@
     "@types/react-dom": "19.2.3",
     "@vitejs/plugin-react": "6.0.2",
     "esbuild": "0.28.2",
+    "jsdom": "26.1.0",
     "tailwindcss": "4.2.1",
     "typescript": "5.9.3",
     "vite": "8.0.13"
