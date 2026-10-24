@@ -23,7 +23,7 @@ test('Local access is limited to configured instance, including redirect targets
 });
 test('Local RSSHub subscription, persistence, daily pull and failed redirects',async()=>{
  let calls=0;
- const hub=createServer((req,res)=>{calls++;if(req.url==='/redirect'){res.writeHead(302,{Location:'http://127.0.0.1:9/private'});return res.end();}if(req.url==='/fail'){res.writeHead(503);return res.end();}res.setHeader('Content-Type','application/rss+xml');res.end('<rss><channel><title>RSSHub fixture</title><item><guid>one</guid><title>Issue one</title><link>https://github.com/DIYgod/RSSHub/issues/1</link><description>RSSHub content</description></item></channel></rss>');});
+ const hub=createServer((req,res)=>{calls++;if(req.url==='/redirect'){res.writeHead(302,{Location:'http://127.0.0.1:9/private'});return res.end();}if(req.url==='/fail'){res.writeHead(503);return res.end();}if(req.url==='/challenge'){res.setHeader('Content-Type','text/html');return res.end('<!doctype html><html><head><title>Client Challenge</title></head><body>Enable JavaScript</body></html>');}res.setHeader('Content-Type','application/rss+xml');res.end('<rss><channel><title>RSSHub fixture</title><item><guid>one</guid><title>Issue one</title><link>https://github.com/DIYgod/RSSHub/issues/1</link><description>RSSHub content</description></item></channel></rss>');});
  await new Promise(r=>hub.listen(0,'127.0.0.1',r));const hubUrl=`http://127.0.0.1:${hub.address().port}`;
  const data=mkdtempSync(resolve('.local/hub-test-')),base='http://127.0.0.1:8879';let child;
  async function start(){child=spawn(process.execPath,['.local/server.mjs'],{env:{...process.env,RSS_PORT:'8879',RSS_DATA_DIR:data},stdio:'ignore'});for(let i=0;i<70;i++){try{if((await fetch(base+'/api/health')).ok)return;}catch{}await new Promise(r=>setTimeout(r,100));}throw Error('Server did not start');}
@@ -36,6 +36,7 @@ test('Local RSSHub subscription, persistence, daily pull and failed redirects',a
   let r=await fetch(base+'/api/refresh',{method:'POST',headers:{Origin:base}});assert.equal((await r.json()).feeds[0].status,'skipped');assert.equal(calls,1);
   assert.equal((await post({action:'add',kind:'rsshub',url:'/redirect'})).status,400);
   const fail=await post({action:'add',kind:'rsshub',url:'/fail'});assert.equal(fail.status,400);assert.match(fail.data.error,/RSSHub.*503/);assert.equal((await state()).feeds.length,1);
+  const challenge=await post({action:'add',kind:'rsshub',url:'/challenge'});assert.equal(challenge.status,400);assert.match(challenge.data.error,/浏览器验证/);assert.doesNotMatch(challenge.data.error,/DTD/);assert.equal((await state()).feeds.length,1);
   await stop();await start();assert.equal((await state()).rsshubInstance,hubUrl);
   // Switching the default instance must preserve existing local subscription URLs.
   assert.equal((await post({action:'rsshubSettings',instance:'https://rsshub.app'})).status,200);

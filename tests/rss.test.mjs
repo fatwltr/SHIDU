@@ -11,6 +11,26 @@ test('Atom supports alternate links, relative URLs and fallback dates',()=>{cons
 test('JSON Feed supported, unsafe article protocols omitted',()=>{const r=parseFeed(JSON.stringify({version:'https://jsonfeed.org/version/1.1',title:'Feed',items:[{id:'1',url:'javascript:alert(1)'},{id:'2',url:'https://example.com/ok',content_html:'<p>OK</p>'}]}),'https://example.com/feed');assert.equal(r.items.length,1);assert.equal(r.items[0].summary,'OK');});
 test('Malformed XML, non-feeds and entity expansion are rejected',()=>{for(const raw of ['<html>no feed</html>','<rss><channel>','<!DOCTYPE rss [<!ENTITY a "x">]><rss/>','<rss></channel>'])assert.throws(()=>parseFeed(raw,'https://example.com/feed'));});
 
+test('HTTP-200 HTML verification pages are reported as browser challenges, not RSS DTD errors',()=>{
+ const html='<!doctype html><html><head><title>Client Challenge</title></head><body>Please enable JavaScript to proceed.</body></html>';
+ for(const prefix of ['', '\uFEFF \n', '<?xml version="1.0"?>\n<!-- generated -->\n']){
+  assert.throws(()=>parseFeed(prefix+html,'https://example.com/feed'),error=>/浏览器验证/.test(error.message)&&!/DTD/.test(error.message));
+ }
+ assert.throws(()=>parseFeed('<html><head><title>Login</title></head><body>Sign in</body></html>','https://example.com/feed'),/HTML 网页/);
+});
+
+test('WordPress HTML doctypes and declaration examples inside CDATA/comments are safe article text',()=>{
+ const raw='<?xml version="1.0"?><!-- Example: <!DOCTYPE rss> --><?note example="<!ENTITY example>"?><rss xmlns:content="http://purl.org/rss/1.0/modules/content/"><channel><title>Client Challenge</title><item><guid>one</guid><title>Newsletter</title><link>https://example.com/post</link><content:encoded><![CDATA[<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "https://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd"><html><body><p>Newsletter content.</p></body></html>]]></content:encoded></item></channel></rss>';
+ const parsed=parseFeed(raw,'https://example.com/feed');assert.equal(parsed.items.length,1);assert.equal(parsed.items[0].summary,'Newsletter content.');
+ assert.equal(parseFeed(raw.replace('Newsletter content.','Example: <!ENTITY example "text">'),'https://example.com/feed').items.length,1);
+});
+
+test('actual DTD and entity declarations remain rejected outside ignored text regions',()=>{
+ for(const declaration of ['<!DOCTYPE rss SYSTEM "https://example.com/external.dtd">','<!DOCTYPE rss [<!ENTITY x SYSTEM "file:///etc/passwd">]>','<!ENTITY x "expanded">','<!doctype rss>']){
+  assert.throws(()=>parseFeed('<!-- harmless --><![CDATA[<!DOCTYPE html>]]>'+declaration+'<rss><channel/></rss>','https://example.com/feed'),/DTD/);
+ }
+});
+
 test('Daily updater persists data, skips same-day pulls, preserves reading state and reports failures',async()=>{
  const sqlite=new DatabaseSync(':memory:');sqlite.exec(readFileSync(new URL('../drizzle/0000_worried_baron_zemo.sql',import.meta.url),'utf8'));
  sqlite.exec(readFileSync(new URL('../drizzle/0001_article_retention.sql',import.meta.url),'utf8'));
