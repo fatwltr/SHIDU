@@ -29,7 +29,7 @@ const rss:ReturnType<typeof createRss>=createRss(()=>adapter,{validateUrl:(raw:s
 const publicDir=resolve(root,'.local/public');
 const day=(d:string)=>new Date(d).toLocaleDateString('en-CA',{timeZone:'Asia/Shanghai'});
 let ticking=false;
-async function tick(){if(ticking)return;ticking=true;try{const now=new Date();const hour=Number(new Intl.DateTimeFormat('en-GB',{timeZone:'Asia/Shanghai',hour:'2-digit',hourCycle:'h23'}).format(now));const {lastRun}=await rss.state();if(hour>=8&&(!lastRun||day(lastRun.at)!==day(now.toISOString()))){const result=await rss.refreshAll();console.log(new Date().toISOString(),'Daily refresh',JSON.stringify(result));}}catch(e){console.error('Daily refresh failed',e);}finally{ticking=false;}}
+async function tick(){if(ticking)return;ticking=true;try{const now=new Date();await rss.cleanupReadArticles(now);const hour=Number(new Intl.DateTimeFormat('en-GB',{timeZone:'Asia/Shanghai',hour:'2-digit',hourCycle:'h23'}).format(now));const {lastRun}=await rss.state();if(hour>=8&&(!lastRun||day(lastRun.at)!==day(now.toISOString()))){const result=await rss.refreshAll();console.log(new Date().toISOString(),'Daily refresh',JSON.stringify(result));}}catch(e){console.error('Scheduled maintenance failed',e);}finally{ticking=false;}}
 const makeServer:typeof createServer=tls?((handler:any)=>createHttpsServer(tls,handler)) as any:createServer;
 const server=makeServer(async(req,res)=>{
  const json=(value:unknown,status=200)=>{res.writeHead(status,{'Content-Type':'application/json; charset=utf-8','Cache-Control':'no-store','X-Content-Type-Options':'nosniff'});res.end(JSON.stringify(value));};
@@ -41,7 +41,7 @@ const server=makeServer(async(req,res)=>{
    if(!credential||!timingSafeEqual(received,expectedAuth)){res.writeHead(401,{'WWW-Authenticate':'Basic realm="Shidu RSS", charset="UTF-8"','Cache-Control':'no-store'});return res.end('Authentication required');}
   }
   const path=new URL(req.url||'/',`http://${host}`).pathname;
-  if(path==='/api/health'&&req.method==='GET')return json({app:'shidu-local',ok:true,port,refreshHour:8,timeZone:'Asia/Shanghai'});
+  if(path==='/api/health'&&req.method==='GET')return json({app:'shidu-local',ok:true,port,refreshHour:8,timeZone:'Asia/Shanghai',readRetentionDays:7});
   if(req.method==='GET'&&path==='/api/reader')return json({...await rss.state(),rsshubInstance:instance(),rsshubSupported:true});
   if(req.method==='GET'&&path==='/api/refresh'){const s=await rss.state();return json({lastRun:s.lastRun,feedCount:s.feeds.length,articleCount:s.articles.length});}
   if(req.method==='POST'){
@@ -60,8 +60,8 @@ const server=makeServer(async(req,res)=>{
    }
    if(b.action==='add'){if(typeof b.url!=='string'||b.url.length>2000)throw Error('请输入有效 RSS 地址');const count=await adapter.prepare('SELECT COUNT(*) AS n FROM feeds').first<{n:number}>();if((count?.n||0)>=30)throw Error('最多添加 30 个源');const feedUrl=b.kind==='rsshub'?resolveRoute(b.url,instance()):b.url;try{await rss.addFeed(feedUrl,String(b.category||'未分类').slice(0,30));}catch(e){if(b.kind==='rsshub')throw Error('RSSHub 订阅失败：'+(e instanceof Error?e.message:'连接异常')+'。请检查实例、路由及该路由所需的登录配置。');throw e;}}
    else if(b.action==='delete'&&typeof b.id==='string')await adapter.batch([adapter.prepare('DELETE FROM articles WHERE feed_id=?').bind(b.id),adapter.prepare('DELETE FROM feeds WHERE id=?').bind(b.id)]);
-   else if(b.action==='article'&&typeof b.id==='string'&&['read','saved'].includes(b.field)&&typeof b.value==='boolean')await adapter.prepare(`UPDATE articles SET ${b.field}=? WHERE id=?`).bind(b.value?1:0,b.id).run();
-   else if(b.action==='readAll'){if(typeof b.feedId==='string')await adapter.prepare('UPDATE articles SET read=1 WHERE feed_id=?').bind(b.feedId).run();else await adapter.prepare('UPDATE articles SET read=1').run();}
+   else if(b.action==='article'&&typeof b.id==='string'&&['read','saved'].includes(b.field)&&typeof b.value==='boolean'){if(b.field==='read')await rss.setRead(b.id,b.value);else await adapter.prepare('UPDATE articles SET saved=? WHERE id=?').bind(b.value?1:0,b.id).run();}
+   else if(b.action==='readAll')await rss.readAll(typeof b.feedId==='string'?b.feedId:undefined);
    else return json({error:'不支持的操作'},400);
    return json({ok:true});
   }

@@ -13,6 +13,7 @@ test('Malformed XML, non-feeds and entity expansion are rejected',()=>{for(const
 
 test('Daily updater persists data, skips same-day pulls, preserves reading state and reports failures',async()=>{
  const sqlite=new DatabaseSync(':memory:');sqlite.exec(readFileSync(new URL('../drizzle/0000_worried_baron_zemo.sql',import.meta.url),'utf8'));
+ sqlite.exec(readFileSync(new URL('../drizzle/0001_article_retention.sql',import.meta.url),'utf8'));
  const wrap=(sql,args=[])=>({bind(...a){return wrap(sql,a);},async first(){return sqlite.prepare(sql).get(...args)||null;},async all(){return {results:sqlite.prepare(sql).all(...args)};},async run(){return sqlite.prepare(sql).run(...args);}});
  globalThis.__rssTestEnv={DB:{prepare:sql=>wrap(sql),batch:async stmts=>{sqlite.exec('BEGIN');try{const values=[];for(const s of stmts)values.push(await s.run());sqlite.exec('COMMIT');return values;}catch(e){sqlite.exec('ROLLBACK');throw e;}}}};
  let code=ts.transpileModule(readFileSync(new URL('../lib/rss-core.ts',import.meta.url),'utf8'),{compilerOptions:{module:ts.ModuleKind.ESNext,target:ts.ScriptTarget.ES2022}}).outputText;

@@ -13,7 +13,7 @@
     "local:build": "node scripts/build-local.mjs",
     "local:start": "node .local/server.mjs",
     "typecheck": "tsc --noEmit",
-    "test": "node --test --test-isolation=none tests/rss.test.mjs tests/rsshub.test.mjs tests/reader-navigation.test.mjs",
+    "test": "node --test --test-isolation=none tests/rss.test.mjs tests/rsshub.test.mjs tests/reader-navigation.test.mjs tests/retention.test.mjs",
     "test:auth": "node tests/remote-auth.mjs"
   },
   "dependencies": {

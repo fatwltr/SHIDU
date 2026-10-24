@@ -10,4 +10,5 @@ copyFileSync(resolve(root,'public/theme-init.js'),resolve(root,'.local/public/th
 await bundle({entryPoints:[resolve(root,'local/server.ts')],outfile:resolve(root,'.local/server.mjs'),platform:'node',format:'esm',bundle:true,target:'node24',external:['node:*']});
 mkdirSync(resolve(root,'.local/migrations'),{recursive:true});
 copyFileSync(resolve(root,'drizzle/0000_worried_baron_zemo.sql'),resolve(root,'.local/migrations/0000.sql'));
+copyFileSync(resolve(root,'drizzle/0001_article_retention.sql'),resolve(root,'.local/migrations/0001.sql'));
 console.log('Local deployment built. Start with: node .local/server.mjs');
