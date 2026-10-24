@@ -107,6 +107,23 @@ RSSHub 将网站内容转换为 RSS。拾读负责连接和读取 RSSHub 输出�
 
 路由说明与实例部署方法见 [RSSHub 官方文档](https://docs.rsshub.app/)。
 
+### 自建 RSSHub（可选）
+
+仓库提供 [Docker Compose 配置](deploy/rsshub.compose.yml)，适合与拾读部署在同一台 Linux 服务器。需要 Docker 和 Compose 插件：
+
+```sh
+docker compose -f deploy/rsshub.compose.yml up -d
+curl --fail http://127.0.0.1:1200/healthz
+```
+
+然后在拾读中将 RSSHub 实例保存为 `http://127.0.0.1:1200`。该端口仅绑定服务器本机，无需在云防火墙放行。如果拾读也运行在容器中，应配置容器间网络地址，容器自己的 `127.0.0.1` 不能访问宿主机服务。
+
+默认使用轻量版官方镜像、内存缓存和单进程，不额外启动 Redis。容器限制为 1 个 CPU 核、896 MiB 内存、1280 MiB 内存与交换空间合计上限，日志最多保留约 30 MiB；这些是限制值，实际占用随路由和请求量变化。
+
+对于确实需要浏览器的路由，可设置 `RSSHUB_IMAGE=ghcr.io/diygod/rsshub:chromium-bundled` 后重新执行部署命令。浏览器版会增加下载、磁盘及抓取时的内存开销，应先验证服务器余量。生产环境可通过该变量固定已验证的镜像摘要或本地镜像 ID，避免升级时意外换版。
+
+自建实例仍受上游网站的访问策略影响，需要登录的路由应另行配置对应凭据。更换实例不会自动迁移已有订阅地址。
+
 ## 更新机制
 
 更新按 **北京时间（`Asia/Shanghai`）的自然日**计算，不是从启动时起每隔 24 小时执行。

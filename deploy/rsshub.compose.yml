@@ -1,0 +1,36 @@
+name: shidu-rsshub
+
+services:
+  rsshub:
+    # Set RSSHUB_IMAGE to a tested digest to keep production deployments reproducible.
+    # Lightweight by default; use chromium-bundled only for routes needing a browser.
+    image: ${RSSHUB_IMAGE:-ghcr.io/diygod/rsshub:latest}
+    command: ["node", "--max-http-header-size=32768", "--max-old-space-size=384", "dist/index.mjs"]
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:1200:1200"
+    environment:
+      NODE_ENV: production
+      TZ: Asia/Shanghai
+      CACHE_TYPE: memory
+      CACHE_EXPIRE: "3600"
+      MEMORY_MAX: "128"
+      ENABLE_CLUSTER: "false"
+      NO_LOGFILES: "true"
+      BILIBILI_EXCLUDE_SUBTITLES: "true"
+    cpus: 1.0
+    mem_limit: 896m
+    memswap_limit: 1280m
+    pids_limit: 256
+    shm_size: 128m
+    healthcheck:
+      test: ["CMD", "curl", "--fail", "--silent", "http://127.0.0.1:1200/healthz"]
+      interval: 60s
+      timeout: 5s
+      retries: 3
+      start_period: 60s
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
